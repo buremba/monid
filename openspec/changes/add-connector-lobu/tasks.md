@@ -59,4 +59,4 @@ runtime tests; their 24 diagnostic messages match the clean upstream baseline.
 - [ ] Resolve publication rules before offering public company/entity lookup
 - [ ] Land the separate Lobu access-tier-aware entity-lookup guidance fix
 
-No public PR has been submitted and no hosted launch is claimed by these tasks.
+PR submission is a review handoff; no hosted launch is claimed by these tasks.
