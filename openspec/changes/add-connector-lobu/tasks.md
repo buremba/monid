@@ -27,6 +27,15 @@ ignored); `LOBU_LIVE=1 deno task test:live connectors/lobu/provider.test.ts`
 `deno task version:check`. Full `check` and `test` fail typechecking before
 runtime tests; their 24 diagnostic messages match the clean upstream baseline.
 
+## Market operating readiness before submission
+
+- [x] Repeat the actual Monid live tests (11 passed)
+- [x] Broaden anonymous query checks and test query-only defaults and empty reads
+- [x] Record relevance, duplicates, mixed freshness, and Cloudflare findings
+- [ ] Restore Market consent for the connected Lobu integration
+- [ ] Inspect current connections, feeds, runs, and source ingestion; repair and retest
+- [ ] Resolve or explicitly bound the recorded readiness issues before submission
+
 ## Hosted launch (not established by local validation)
 
 - [ ] Confirm hosted empty-credential configuration and shared-egress capacity

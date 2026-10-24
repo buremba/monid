@@ -68,6 +68,42 @@ adds no attribution contract or tracking surface. A distribution experiment shou
 start with customer feedback and software comparisons rather than broad company
 enrichment where other providers are stronger.
 
+## Live Market readiness check (2026-10-24)
+
+The actual Monid connector passed all 11 tests again, including anonymous
+search-to-source reading. Eight broader research queries each returned HTTP 200
+in roughly 3.9–5.2 s; the query-only defaults also completed (50 rows, about
+142 KiB, 5.4 s). An unknown content ID returned an empty 200 response.
+
+This does not establish full readiness:
+
+- Linear, Notion, Slack, HubSpot, Cursor, and Anthropic queries yielded relevant
+  examples, but broad Salesforce and Datadog queries returned tangential matches.
+  A brand-only query with `min_similarity: 1` and `vector_weight: 0` returned
+  brand mentions in the bounded follow-up. A mention still does not prove the
+  specific claim requested (for example pricing complaints).
+- Some current rows are duplicate copies of the same source item, including
+  different origin formats on the same connection. Do not count raw rows as
+  independent reviews. Resolve source identity and provenance before deduping;
+  a review-site landing URL alone cannot distinguish individual reviews.
+- The newest anonymous Reddit rows were dated 2026-07-17. Website rows included
+  2026-10-24. An unrestricted recent Notion query also returned entity-update
+  records; selecting the requested source platforms excluded those records.
+  The different source freshness levels need collection-health verification.
+- A Python urllib probe was rejected by Cloudflare with HTTP 403 / code 1010,
+  while the actual Monid/Deno execution succeeded. Hosted Monid egress remains
+  unverified; do not assume local success proves edge compatibility everywhere.
+- Returned event links served the frontend HTML and its JavaScript assets when
+  requested as HTML. Bare generic GETs returned the service-root JSON response.
+  This verifies delivery, not the final rendered browser interaction.
+
+The connected Lobu OAuth grant explicitly rejected Market workspace access,
+although account discovery confirmed membership and public visibility. Feed,
+connection, and Automation health checks and repairs are pending renewed Market
+consent. No alternative credential or authenticated browser path was used to
+bypass that denial. Hold submission until these operating issues are checked and
+resolved or their supported scope is made explicit.
+
 ## Maintainer review request
 
 Please review this free, keyless public-discussion source for hosted admission.
