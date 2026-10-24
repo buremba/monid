@@ -1,0 +1,19 @@
+{
+    "name": "search-memory-bad-input",
+    "description": "Recorded 2026-10-24 from POST https://app.lobu.ai/api/market/search_memory (public, keyless; no request headers kept). Empty body {} sent straight to the API, bypassing the binding: vendor 400; body verbatim. The binding rejects this input before any call.",
+    "calls": [
+        {
+            "req": {
+                "method": "POST",
+                "url": "{{request.url}}",
+                "body": {}
+            },
+            "res": {
+                "status": 400,
+                "body": {
+                    "error": "Must provide either query, entity_id, or query_embedding"
+                }
+            }
+        }
+    ]
+}

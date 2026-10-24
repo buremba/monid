@@ -1,0 +1,19 @@
+{
+    "name": "search-sdk-bad-input",
+    "description": "Recorded 2026-10-24 from POST https://app.lobu.ai/api/market/search_sdk (public, keyless; no request headers kept). Empty body {} sent straight to the API, bypassing the binding: vendor 400; body verbatim. The binding rejects this input before any call.",
+    "calls": [
+        {
+            "req": {
+                "method": "POST",
+                "url": "{{request.url}}",
+                "body": {}
+            },
+            "res": {
+                "status": 400,
+                "body": {
+                    "error": "Invalid arguments for search_sdk: /query: Expected required property"
+                }
+            }
+        }
+    ]
+}

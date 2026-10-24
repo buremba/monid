@@ -1,0 +1,31 @@
+{
+    "name": "search-memory-empty",
+    "description": "Recorded 2026-10-24 from POST https://app.lobu.ai/api/market/search_memory (public, keyless; no request headers kept). Query matching no entity in the market workspace: 200 with matches: [] and entity: null.",
+    "calls": [
+        {
+            "req": {
+                "method": "POST",
+                "url": "{{request.url}}",
+                "body": {
+                    "query": "zzqxvqqq999",
+                    "include_content": false,
+                    "limit": 1
+                }
+            },
+            "res": {
+                "status": 200,
+                "body": {
+                    "entity_type": null,
+                    "entity": null,
+                    "matches": [],
+                    "discovery_status": "not_found",
+                    "metadata": {
+                        "total_matches": 0,
+                        "page_size": 0
+                    },
+                    "suggestion": "No matches found for \"zzqxvqqq999\" in saved workspace memory.\n\n**Additional steps to read relevant data:**\n1. **Check connected source feeds:** Connected feeds are not queried automatically. List them with `client.feeds.list()` and read them with `client.feeds.readMany({ reads: [...] })` via `query_sdk`.\n2. **Check activity and audit records:** tool invocations and other operational events are written to `events` with no body text and no embedding, so semantic recall cannot rank them and this tool leaves them out. Read them explicitly with `query_sql` (e.g. `SELECT id, title, semantic_type, occurred_at FROM events WHERE semantic_type = 'audit' ORDER BY occurred_at DESC LIMIT 50`) or with `client.knowledge.read({ semantic_type: 'audit' })` through `query_sdk`.\n3. **Broaden the search:** retry with one of these relaxations: lower min_similarity (default 0.3); try alternate keywords or synonyms.\n\n**If this is new knowledge to persist:** this caller has read-only access to the workspace, so `save_memory` and entity creation would be denied. Reconnect with write access, or ask a workspace member to persist it."
+                }
+            }
+        }
+    ]
+}

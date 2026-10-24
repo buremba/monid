@@ -1,0 +1,25 @@
+{
+    "name": "synthetic-rate-limited",
+    "description": "Synthetic 429 rate-limit response shape from Lobu's REST gateway.",
+    "calls": [
+        {
+            "req": {
+                "method": "POST",
+                "url": "{{request.url}}",
+                "body": {
+                    "query": "Anthropic",
+                    "entity_type": "company",
+                    "limit": 1,
+                    "content_limit": 1
+                }
+            },
+            "res": {
+                "status": 429,
+                "body": {
+                    "error": "rate_limit_exceeded",
+                    "error_description": "Too many requests. Please retry later."
+                }
+            }
+        }
+    ]
+}
