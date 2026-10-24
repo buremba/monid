@@ -1,30 +1,43 @@
 # Tasks: add-connector-lobu
 
-## 1. Provider
+## Implementation
 
-- [x] 1.1 provider.ts: baseUrl (`https://app.lobu.ai`), keyless auth (empty
-      credentials + identity inject), timeouts 25/30 s, FREE model, meta +
-      upgrade path notes
-- [x] 1.2 schema/common.ts: sort order, knowledge sort axis, and SDK search
-      mode enums
+- [x] Keyless FREE provider with focused public-research metadata and caveats
+- [x] One endpoint: read_knowledge for direct search and source reading
+- [x] Remove company lookup, SDK discovery, unsupported categories, unverified
+      counts, and incorrect newcomer/managed-OAuth instructions
+- [x] Preserve provider input fields, enforce binding bounds, preserve responses
+- [x] Keep only the reader's Lobu ID in ids.lock.json
 
-## 2. Endpoints (3)
+## Validation
 
-- [x] 2.1 search_memory, read_knowledge, search_sdk: faithful mirror per
-      endpoint, vendor bounds at the binding, identity = wire path
-- [x] 2.2 ids.lock.json: the three `lobu#` ids
+- [x] Replay, egress, provider-error, input-gate, timeout, and fixture-size tests
+- [x] Opt-in live direct-search-to-source-read proof: 11 tests passed
+- [x] Two bounded relevance checks with source dates and links (see proposal)
+- [x] Final scoped formatting/lint/typecheck and deterministic double compile
+- [x] Final version gate and intended-file diff inspection (14 intended files)
+- [x] Compare full check/test failures and IDs drift with untouched origin/main:
+      24 existing OpenAI test typing errors; identical unrelated IDs drift
 
-## 3. Fixtures + tests
+Commands: `deno task test connectors/lobu/provider.test.ts` (10 passed, live
+ignored); `LOBU_LIVE=1 deno task test:live connectors/lobu/provider.test.ts`
+(11 passed); `deno fmt --check connectors/lobu`; `deno lint connectors/lobu`;
+`deno task compiler:compile` twice (identical catalog SHA-256
+`d5f8709dc52da891b35545a1ba6f9487f5f1baf614bfd0bd76f458f7b236914c`);
+`deno task version:check`. Full `check` and `test` fail typechecking before
+runtime tests; their 24 diagnostic messages match the clean upstream baseline.
 
-- [x] 3.1 Recorded fixtures from `https://app.lobu.ai/api/market/*` (2026-10-24,
-      public data, no request headers kept) + synthetic 429/503 error shapes
-- [x] 3.2 provider.test.ts: compiled shape (3 ids, urls, keyless, FREE, nothing
-      mapped), recorded happy replays equal the body, sources and metadata
-      survive, empty answers, 400/403/429/503/500 as zero-billed data, binding
-      gates with no upstream call, bare egress, request timeout, fixture size,
-      live run gated on `LOBU_LIVE=1`
+## Hosted launch (not established by local validation)
 
-## 4. Verify
+- [ ] Confirm hosted empty-credential configuration and shared-egress capacity
+- [ ] Validate hosted discover/inspect/run for the example tasks
+- [ ] Confirm optional homepage continuation meets Monid listing policy
+- [ ] Prove first-time signup and account/browser authorization with human control
+- [ ] Measure discovery relevance, sourced answer success, and optional adoption
 
-- [x] 4.1 fmt · lint · check · test · double-compile · version:check ·
-      ids:check · catalog endpoints (3) · live run against the public API
+## Deferred separate work
+
+- [ ] Resolve publication rules before offering public company/entity lookup
+- [ ] Land the separate Lobu access-tier-aware entity-lookup guidance fix
+
+No public PR has been submitted and no hosted launch is claimed by these tasks.

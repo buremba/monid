@@ -10,6 +10,3 @@ export const zLobuSortOrder = z.enum(["asc", "desc"]);
 
 /** Sort axis for `read_knowledge`. */
 export const zLobuKnowledgeSortBy = z.enum(["date", "score"]);
-
-/** Access-tier filter for `search_sdk`. */
-export const zLobuSdkSearchMode = z.enum(["read", "full"]);

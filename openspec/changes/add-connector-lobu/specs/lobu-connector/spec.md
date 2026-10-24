@@ -4,56 +4,68 @@
 
 ### Requirement: Keyless, free provider
 
-The lobu provider SHALL declare name `lobu`, `request.baseUrl`
-`https://app.lobu.ai`, an empty credential shape, an identity `auth.inject`,
-timeouts 25 s request / 30 s run, and usage model `FREE`. It SHALL NOT declare
-a credit pool, `usage.consolidate`, a lifecycle, `input.toRequest`,
-`output.fromResponse`, or `output.fromError`.
+The lobu provider SHALL declare name `lobu`, base URL `https://app.lobu.ai`,
+an empty credential shape, identity `auth.inject`, 25 s request / 30 s run
+timeouts, and usage model `FREE`. It SHALL NOT declare a credit pool,
+`usage.consolidate`, lifecycle, `input.toRequest`, `output.fromResponse`, or
+`output.fromError`.
 
 #### Scenario: Nothing is added to the request
 
-- **WHEN** any lobu endpoint runs
-- **THEN** the request carries only `content-type: application/json` and the
-  validated body, no credential is resolved, and nothing is billed
+- **WHEN** the endpoint runs
+- **THEN** only content-type and the validated body are sent, no credential is
+  resolved, and the engine reports empty credit/evidence usage
 
-### Requirement: Read-only public market surface
+### Requirement: Public discussion search and reading
 
-The connector SHALL expose `lobu#api/market/search_memory`,
-`lobu#api/market/read_knowledge`, and `lobu#api/market/search_sdk`, each a
-`POST` whose identity is its wire path. No endpoint that mutates workspace state
+The connector SHALL expose only `lobu#api/market/read_knowledge`, a POST whose
+identity is its wire path. No entity lookup, SDK discovery, or mutation endpoint
 SHALL be declared.
 
-#### Scenario: The compiled bundle holds three reads
+#### Scenario: One endpoint completes the research workflow
 
-- **WHEN** the bundle is compiled
-- **THEN** the `lobu#` ids are `lobu#api/market/read_knowledge`,
-  `lobu#api/market/search_memory`, and `lobu#api/market/search_sdk`
+- **WHEN** an agent searches with a product-research query
+- **THEN** it can read returned content IDs without resolving an entity
+- **AND** source text, source URL, source date, and pagination survive the read
+- **AND** neither step requires a Lobu account or incurs usage
 
-### Requirement: Answers pass through verbatim
+### Requirement: Responses pass through unchanged
 
-Every response SHALL reach the caller as the vendor sent it.
+Responses SHALL reach the caller without connector output mapping.
 
-#### Scenario: Entity metadata, source URLs, and coverage survive
+#### Scenario: Recorded source metadata survives
 
-- **WHEN** `search_memory`, `read_knowledge`, or `search_sdk` returns a 200
-  response
-- **THEN** the output equals the recorded body with `source_url`, `permalink`,
-  `view_url`, and `coverage` preserved untouched
+- **WHEN** a successful fixture is replayed
+- **THEN** output equals its recorded body, including content IDs, source URLs,
+  permalinks, source dates, and version metadata
 
-#### Scenario: Vendor errors are zero-billed data
+#### Scenario: Provider errors remain errors with zero usage
 
-- **WHEN** the vendor answers 400, 403, 429, 503, or 500
+- **WHEN** the provider returns an error response
 - **THEN** `isProviderError` is true, usage is `{credits: {}, evidence: {}}`,
-  and the body passes through untouched
+  and the body passes through unchanged
 
-### Requirement: Bindings carry the vendor's bounds
+### Requirement: Bindings enforce provider bounds
 
-Inputs SHALL mirror the published OpenAPI with optionality only, and the
-bindings SHALL reject what the vendor documents as invalid before any call.
+The input schema SHALL mirror the published provider fields and optionality;
+bounds SHALL be enforced at the binding.
 
-#### Scenario: Out-of-bounds input never reaches the vendor
+#### Scenario: Invalid input never reaches the provider
 
-- **WHEN** a caller sends `{}` or whitespace-only `query` to `search_memory`,
-  whitespace-only `query` to `search_sdk`, or out-of-range `limit`,
-  `content_limit`, `min_similarity`, `vector_weight`, `sort_by`, or `sort_order`
-- **THEN** the run fails with `INVALID_INPUT` and no upstream call is made
+- **WHEN** a caller supplies blank query, invalid content/entity IDs, empty
+  platform filters, or invalid limit, offset, similarity, weight, or sort values
+- **THEN** the run fails with `INVALID_INPUT` without an upstream call
+
+### Requirement: Accurate discovery and independent free value
+
+Metadata SHALL describe the public discussion research available here and its
+stored-data limitations. It SHALL NOT imply authenticated browser actions, SDK
+execution, account setup, live scraping, exhaustive coverage, or verified claims.
+Optional continuation in Lobu SHALL NOT be required for public research.
+
+#### Scenario: Exact source reads expand version history
+
+- **WHEN** a content ID resolves to a source with multiple stored versions
+- **THEN** the response and pagination remain unchanged
+- **AND** operational notes explain chronological history, `page.has_more`,
+  `offset`, and `is_superseded`, without counting versions as independent reviews

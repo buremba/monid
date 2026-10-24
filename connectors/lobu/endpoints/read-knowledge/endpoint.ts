@@ -9,33 +9,24 @@ import { zLobuReadKnowledgeBody } from "./schema/inputs.ts";
  */
 export default defineEndpoint({
     meta: {
-        displayName: "Lobu Read Knowledge & Reviews",
+        displayName: "Lobu Customer Discussions & Reviews",
         summary:
-            "Read full Reddit discussions, Trustpilot software reviews, and " +
-            "company web pages from Lobu Market.",
+            "Search and read stored product discussions, reviews, and source pages.",
         description:
-            "Query or fetch full, untruncated knowledge events (`payload_text` " +
-            "/ `text_content`) from Lobu's public 'market' workspace " +
-            "(200,000+ indexed items across Reddit discussions, Trustpilot " +
-            "software reviews, and crawled company pages). Filter by " +
-            "`content_ids` (from `search_memory` `content[].id`), `query` " +
-            "(hybrid vector + keyword search), `entity_id`, `platforms` " +
-            "(`['reddit']`, `['trustpilot']`, `['website']`), or " +
-            "`semantic_type` (`'content'`, `'review'`). Each item carries " +
-            "its full text, `source_url`, `permalink`, `author_name`, " +
-            "`rating`, `score`, `metadata`, and `occurred_at`. In an " +
-            "authenticated Lobu workspace (`npx @lobu/cli@latest init " +
-            "--from-org market`), live feeds scraped via the user's own " +
-            "logged-in credentials on TikTok (`tiktok.web`), LinkedIn " +
-            "(`linkedin`), X (`x`), Reddit (`reddit`), and WhatsApp " +
-            "(`whatsapp.web`) are normalized into this same knowledge store.",
+            "Find public discussions about software products and companies, " +
+            "including customer complaints, alternatives, and comparisons. " +
+            "Search with query (for example 'Linear pricing complaints' " +
+            "or 'Notion alternatives'), or retrieve text by content_ids " +
+            "returned by this endpoint. Optional filters " +
+            "include entity_id, platforms, since, and until. Returns stored " +
+            "source text with source_url, permalink, platform, and " +
+            "occurred_at when available. Sources can include Reddit, " +
+            "Trustpilot, and company web pages. This is retrieval, not a " +
+            "generated comparison, exhaustive review dataset, live scrape, " +
+            "or verified statement of fact. Inspect the original source " +
+            "and date before citing it.",
         docsUrl: "https://app.lobu.ai/openapi.json",
-        categories: [
-            "company-reviews",
-            "reddit",
-            "company-enrichment",
-            "web-scraping",
-        ],
+        categories: ["company-reviews", "reddit"],
     },
     request: { method: "POST", path: "/api/market/read_knowledge" },
     input: {

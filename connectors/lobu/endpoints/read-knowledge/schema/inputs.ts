@@ -15,8 +15,9 @@ export const zLobuReadKnowledgeBody = z.object({
             "(Reddit posts/comments, Trustpilot reviews, and company pages).",
     ).optional(),
     content_ids: z.array(z.number().int()).describe(
-        "Specific knowledge event IDs to fetch in full (as returned in " +
-            "`search_memory` `content[].id`).",
+        "Knowledge event IDs from returned content[].id. Exact reads can " +
+            "expand each source's version history; inspect is_superseded " +
+            "and pagination rather than assuming one ID returns one row.",
     ).optional(),
     entity_id: z.number().int().describe(
         "Filter knowledge events linked to a specific entity ID.",

@@ -1,6 +1,7 @@
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import { fromFileUrl } from "@std/path";
 import type { Json, RunInput } from "@shared/core";
+import { z } from "zod";
 import {
     directTransport,
     Engine,
@@ -19,36 +20,15 @@ const BASE = "https://app.lobu.ai/api/market/";
 
 /**
  * One recorded happy chain per endpoint. The connector maps nothing, so the
- * recorded body IS the contract: a dropped source URL, entity field, or
- * coverage block must fail.
+ * recorded body IS the contract: a dropped source URL, source date, or
+ * content field must fail.
  */
 const HAPPY: Record<string, { fixture: string; input: RunInput }> = {
-    "lobu#api/market/search_memory": {
-        fixture: "search-memory-ok",
-        input: {
-            body: {
-                query: "Anthropic",
-                entity_type: "company",
-                limit: 1,
-                content_limit: 1,
-            },
-        },
-    },
     "lobu#api/market/read_knowledge": {
         fixture: "read-knowledge-ok",
         input: {
             body: {
                 content_ids: [2286657],
-            },
-        },
-    },
-    "lobu#api/market/search_sdk": {
-        fixture: "search-sdk-ok",
-        input: {
-            body: {
-                query: "feeds",
-                mode: "read",
-                limit: 2,
             },
         },
     },
@@ -66,7 +46,7 @@ async function replay(id: string, fixture: string, input: RunInput) {
     };
 }
 
-Deno.test("lobu: three read-only POSTs, keyless, FREE, nothing mapped, upgrade notes merged", async () => {
+Deno.test("lobu: public discussion search and reading, keyless, FREE, nothing mapped", async () => {
     const bundle = await testBundle();
     const ids = Object.keys(bundle.endpoints).filter((id) =>
         id.startsWith("lobu#")
@@ -106,15 +86,12 @@ Deno.test("lobu: three read-only POSTs, keyless, FREE, nothing mapped, upgrade n
         assertEquals(doc.output.fromError, undefined, id);
         assertEquals(doc.timeouts.requestMs, 25_000, id);
         assertEquals(doc.timeouts.runMs, 30_000, id);
-        // provider upgrade notes merge into every endpoint doc so `monid inspect`
-        // tells agents how to connect user credentials for social scraping
+        const description = doc.meta.description ?? "";
         const notesText = (doc.meta.notes ?? []).join(" ");
-        assert(notesText.includes("tiktok.web"), id);
-        assert(notesText.includes("linkedin"), id);
-        assert(
-            notesText.includes("npx @lobu/cli@latest init --from-org market"),
-            id,
-        );
+        assert(!description.includes("--from-org"), id);
+        assert(!notesText.includes("/connect/managed"), id);
+        assert(notesText.includes("stored public knowledge"), id);
+        assert(!doc.meta.categories?.includes("tiktok"), id);
     }
 });
 
@@ -128,37 +105,7 @@ Deno.test("lobu: happy chains (recorded 2026-10-24) replay verbatim at zero usag
     }
 });
 
-Deno.test("lobu: answers keep their entity identifiers, source URLs, permalinks, and SDK docs", async () => {
-    const memory = (
-        await replay(
-            "lobu#api/market/search_memory",
-            HAPPY["lobu#api/market/search_memory"].fixture,
-            HAPPY["lobu#api/market/search_memory"].input,
-        )
-    ).result.output as {
-        entity: {
-            id: number;
-            name: string;
-            metadata: { qid: string; domain: string; linkedin_url: string };
-        };
-        view_url: string;
-        content: { id: number; source_url: string; platform: string }[];
-    };
-    assertEquals(memory.entity.id, 55199);
-    assertEquals(memory.entity.name, "Anthropic");
-    assertEquals(memory.entity.metadata.qid, "Q116758847");
-    assertEquals(memory.entity.metadata.domain, "anthropic.com");
-    assertEquals(
-        memory.entity.metadata.linkedin_url,
-        "https://www.linkedin.com/company/anthropicresearch",
-    );
-    assertEquals(
-        memory.view_url,
-        "https://app.lobu.ai/market/company/anthropic",
-    );
-    assertEquals(memory.content.length, 1);
-    assert(memory.content[0].source_url.startsWith("https://reddit.com/"));
-
+Deno.test("lobu: answers keep their content identifiers, source URLs, permalinks, and source dates", async () => {
     const knowledge = (
         await replay(
             "lobu#api/market/read_knowledge",
@@ -171,11 +118,13 @@ Deno.test("lobu: answers keep their entity identifiers, source URLs, permalinks,
             platform: string;
             source_url: string;
             permalink: string;
+            occurred_at: string;
         }[];
     };
     assertEquals(knowledge.content.length, 1);
     assertEquals(knowledge.content[0].id, 2286657);
     assertEquals(knowledge.content[0].platform, "reddit");
+    assertEquals(knowledge.content[0].occurred_at, "2025-04-29T12:02:32.000Z");
     assertEquals(
         knowledge.content[0].source_url,
         "https://reddit.com/r/webdev/comments/1kam74j/ai_coding_assistants_inside_ides_are_about_to/",
@@ -184,37 +133,9 @@ Deno.test("lobu: answers keep their entity identifiers, source URLs, permalinks,
         knowledge.content[0].permalink,
         "https://app.lobu.ai/market/events/2286657",
     );
-
-    const sdk = (
-        await replay(
-            "lobu#api/market/search_sdk",
-            HAPPY["lobu#api/market/search_sdk"].fixture,
-            HAPPY["lobu#api/market/search_sdk"].input,
-        )
-    ).result.output as {
-        match_count: number;
-        results: string[];
-    };
-    assertEquals(sdk.match_count, 3);
-    assertEquals(sdk.results.length, 2);
-    assert(sdk.results[0].startsWith("feeds.list —"));
 });
 
 Deno.test("lobu: empty answers are 200s with empty collections and zero usage", async () => {
-    const memoryEmpty = await replay(
-        "lobu#api/market/search_memory",
-        "search-memory-empty",
-        { body: { query: "zzqxvqqq999", include_content: false, limit: 1 } },
-    );
-    assertEquals(memoryEmpty.result.httpStatus, 200);
-    assertEquals(memoryEmpty.result.isProviderError, false);
-    assertEquals(memoryEmpty.result.usage, FREE);
-    assertEquals(memoryEmpty.result.output, memoryEmpty.recorded);
-    assertEquals(
-        (memoryEmpty.result.output as { matches: unknown[] }).matches,
-        [],
-    );
-
     const knowledgeEmpty = await replay(
         "lobu#api/market/read_knowledge",
         "read-knowledge-empty",
@@ -227,20 +148,6 @@ Deno.test("lobu: empty answers are 200s with empty collections and zero usage", 
     assertEquals(
         (knowledgeEmpty.result.output as { content: unknown[] }).content,
         [],
-    );
-
-    const sdkEmpty = await replay(
-        "lobu#api/market/search_sdk",
-        "search-sdk-empty",
-        { body: { query: "zzqxvqqq999" } },
-    );
-    assertEquals(sdkEmpty.result.httpStatus, 200);
-    assertEquals(sdkEmpty.result.isProviderError, false);
-    assertEquals(sdkEmpty.result.usage, FREE);
-    assertEquals(sdkEmpty.result.output, sdkEmpty.recorded);
-    assertEquals(
-        (sdkEmpty.result.output as { match_count: number }).match_count,
-        0,
     );
 });
 
@@ -255,27 +162,23 @@ Deno.test("lobu: vendor 4xx/5xx are data, zero usage, body untouched", async () 
         ],
         // synthetic rate-limit and maintenance shapes
         [
-            "lobu#api/market/search_memory",
+            "lobu#api/market/read_knowledge",
             "synthetic-rate-limited",
             {
                 body: {
                     query: "Anthropic",
-                    entity_type: "company",
                     limit: 1,
-                    content_limit: 1,
                 },
             },
             429,
         ],
         [
-            "lobu#api/market/search_memory",
+            "lobu#api/market/read_knowledge",
             "synthetic-maintenance",
             {
                 body: {
                     query: "Anthropic",
-                    entity_type: "company",
                     limit: 1,
-                    content_limit: 1,
                 },
             },
             503,
@@ -291,32 +194,7 @@ Deno.test("lobu: vendor 4xx/5xx are data, zero usage, body untouched", async () 
 });
 
 Deno.test("lobu: the binding rejects what the vendor would 400, before any call", async () => {
-    // recorded vendor 400s that the bindings pre-empt
-    for (const fixture of ["search-memory-bad-input", "search-sdk-bad-input"]) {
-        const fx = await loadFixture(`${FIXTURES}${fixture}.json`);
-        assertEquals(fx.calls[0].res.status, 400, fixture);
-        assert(
-            typeof (fx.calls[0].res.body as { error?: string }).error ===
-                "string",
-            fixture,
-        );
-    }
-
     const rejected: [string, Json][] = [
-        ["search_memory", {}],
-        ["search_memory", { query: "" }],
-        ["search_memory", { query: "   " }],
-        ["search_memory", { entity_id: 0 }],
-        ["search_memory", { entity_id: -1 }],
-        ["search_memory", { entity_id: 1.5 }],
-        ["search_memory", { query: "Anthropic", limit: 0 }],
-        ["search_memory", { query: "Anthropic", limit: 101 }],
-        ["search_memory", { query: "Anthropic", limit: 2.5 }],
-        ["search_memory", { query: "Anthropic", content_limit: 0 }],
-        ["search_memory", { query: "Anthropic", content_limit: 51 }],
-        ["search_memory", { query: "Anthropic", min_similarity: -0.1 }],
-        ["search_memory", { query: "Anthropic", min_similarity: 1.1 }],
-        ["search_memory", { query: "Anthropic", unknown_field: true }],
         ["read_knowledge", { query: "" }],
         ["read_knowledge", { query: "   " }],
         ["read_knowledge", { content_ids: [] }],
@@ -336,13 +214,6 @@ Deno.test("lobu: the binding rejects what the vendor would 400, before any call"
         ["read_knowledge", { vector_weight: 1.5 }],
         ["read_knowledge", { sort_by: "popularity" }],
         ["read_knowledge", { sort_order: "sideways" }],
-        ["search_sdk", {}],
-        ["search_sdk", { query: "" }],
-        ["search_sdk", { query: "   " }],
-        ["search_sdk", { query: "feeds", mode: "admin" }],
-        ["search_sdk", { query: "feeds", limit: 0 }],
-        ["search_sdk", { query: "feeds", limit: 101 }],
-        ["search_sdk", { query: "feeds", limit: 1.5 }],
     ];
     for (const [tool, body] of rejected) {
         // no fixture: any upstream call would itself fail the test
@@ -358,16 +229,6 @@ Deno.test("lobu: the binding rejects what the vendor would 400, before any call"
     // boundary-valid twins clear the gate
     const passing: [string, string, Json][] = [
         [
-            "search_memory",
-            "search-memory-ok",
-            { query: "Anthropic", limit: 1, content_limit: 50 },
-        ],
-        [
-            "search_memory",
-            "search-memory-ok",
-            { entity_id: 55199, limit: 100, min_similarity: 0.5 },
-        ],
-        [
             "read_knowledge",
             "read-knowledge-ok",
             {
@@ -379,11 +240,6 @@ Deno.test("lobu: the binding rejects what the vendor would 400, before any call"
                 limit: 100,
                 offset: 0,
             },
-        ],
-        [
-            "search_sdk",
-            "search-sdk-ok",
-            { query: "feeds", mode: "full", limit: 100 },
         ],
     ];
     for (const [tool, fixture, body] of passing) {
@@ -421,24 +277,20 @@ Deno.test("lobu: egress is bare: no key, no tracking, body as given", async () =
     const engine = captureEngine(seen, () =>
         Promise.resolve(
             new Response(
-                JSON.stringify({ query: "feeds", match_count: 0, results: [] }),
+                JSON.stringify({ content: [] }),
                 {
                     status: 200,
                     headers: { "content-type": "application/json" },
                 },
             ),
         ));
-    const unit = await testSealedUnit("lobu#api/market/search_sdk");
+    const unit = await testSealedUnit("lobu#api/market/read_knowledge");
     const loaded = await engine.load(unit);
-    const body = { query: "feeds", mode: "read" };
+    const body = { query: "Linear pricing complaints", limit: 3 };
     const result = await loaded.run({ body });
-    assertEquals(result.output, {
-        query: "feeds",
-        match_count: 0,
-        results: [],
-    });
+    assertEquals(result.output, { content: [] });
     assertEquals(seen.length, 1);
-    assertEquals(seen[0].url, BASE + "search_sdk");
+    assertEquals(seen[0].url, BASE + "read_knowledge");
     assertEquals(seen[0].init.method, "POST");
     assertEquals(seen[0].init.headers, { "content-type": "application/json" });
     assertEquals(JSON.parse(String(seen[0].init.body)), body);
@@ -453,7 +305,7 @@ Deno.test("lobu: a non-JSON 500 from the edge is data, zero usage", async () => 
                 headers: { "content-type": "text/plain" },
             }),
         ));
-    const unit = await testSealedUnit("lobu#api/market/search_memory");
+    const unit = await testSealedUnit("lobu#api/market/read_knowledge");
     const loaded = await engine.load(unit);
     const result = await loaded.run({ body: { query: "Anthropic" } });
     assertEquals(result.httpStatus, 500);
@@ -475,7 +327,7 @@ Deno.test("lobu: a hung upstream is cut off at requestMs", async () => {
                 )
             ),
     );
-    const unit = await testSealedUnit("lobu#api/market/search_sdk");
+    const unit = await testSealedUnit("lobu#api/market/read_knowledge");
     const loaded = await engine.load({
         ...unit,
         doc: {
@@ -484,7 +336,7 @@ Deno.test("lobu: a hung upstream is cut off at requestMs", async () => {
         },
     });
     const error = await assertRejects(
-        () => loaded.run({ body: { query: "feeds" } }),
+        () => loaded.run({ body: { query: "Linear" } }),
         EngineError,
     );
     assertEquals(error.code, EngineErrorCode.EXECUTION_FAILED);
@@ -499,21 +351,110 @@ Deno.test("lobu: fixtures stay small (largest response under 10 KiB)", async () 
     }
 });
 
+const zKnowledgeResult = z.object({
+    content: z.array(z.object({
+        id: z.number().int().positive(),
+        title: z.string().nullable(),
+        text_content: z.string().nullable(),
+        payload_text: z.string().nullable(),
+        source_url: z.string().nullable(),
+        occurred_at: z.string().nullable(),
+        origin_id: z.string().nullable(),
+        is_superseded: z.boolean(),
+    })),
+    total: z.number().nullable(),
+    chain_total: z.number().optional(),
+    page: z.object({ has_more: z.boolean() }),
+});
+
 Deno.test({
-    name: "lobu live (gated on LOBU_LIVE=1; keyless, free)",
+    name: "lobu live: direct discussion search-to-read (LOBU_LIVE=1)",
     ignore: Deno.env.get("LOBU_LIVE") !== "1",
     fn: async () => {
-        for (const [id, { input }] of Object.entries(HAPPY)) {
-            const unit = await testSealedUnit(id);
-            const result = await runEndpoint({ unit, input, mode: "live" });
-            assertEquals(
-                result.isProviderError,
-                false,
-                `${id} ${JSON.stringify(result.output)}`,
+        const unit = await testSealedUnit("lobu#api/market/read_knowledge");
+        for (
+            const query of ["Linear pricing complaints", "Notion alternatives"]
+        ) {
+            const started = Date.now();
+            const found = await runEndpoint({
+                unit,
+                input: { body: { query, limit: 3, include_total: false } },
+                mode: "live",
+            });
+            assertEquals(found.isProviderError, false, query);
+            assertEquals(found.usage, FREE, query);
+            const items = zKnowledgeResult.parse(found.output).content;
+            assert(items.length > 0 && items.length <= 3, query);
+            const source = items.find((item) =>
+                item.source_url?.startsWith("https://") &&
+                `${item.title ?? ""} ${
+                    item.text_content ?? item.payload_text ?? ""
+                }`
+                    .toLowerCase().includes(query.split(" ")[0].toLowerCase())
             );
-            assertEquals(result.usage, FREE, id);
-            assertEquals(typeof result.output, "object", id);
-            assert(result.output !== null, id);
+            assert(
+                source,
+                `No sourced discussion mentions the requested product: ${query}`,
+            );
+            assert(Number.isInteger(source.id) && source.id > 0);
+            assert(
+                source.occurred_at &&
+                    Number.isFinite(Date.parse(source.occurred_at)),
+            );
+            let read = await runEndpoint({
+                unit,
+                input: { body: { content_ids: [source.id], limit: 3 } },
+                mode: "live",
+            });
+            assertEquals(read.isProviderError, false, query);
+            assertEquals(read.usage, FREE, query);
+            let result = zKnowledgeResult.parse(read.output);
+            assertEquals(result.chain_total, 1);
+            // Exact reads expand a source's version history, oldest first.
+            // Inspect the last bounded page instead of assuming one ID = one row.
+            if (result.page.has_more) {
+                assert(typeof result.total === "number");
+                read = await runEndpoint({
+                    unit,
+                    input: {
+                        body: {
+                            content_ids: [source.id],
+                            limit: 3,
+                            offset: Math.max(0, result.total - 3),
+                        },
+                    },
+                    mode: "live",
+                });
+                assertEquals(read.isProviderError, false, query);
+                assertEquals(read.usage, FREE, query);
+                result = zKnowledgeResult.parse(read.output);
+            }
+            assert(result.content.length > 0 && result.content.length <= 3);
+            for (const item of result.content) {
+                assertEquals(item.origin_id, source.origin_id);
+                assertEquals(item.source_url, source.source_url);
+                assert(
+                    item.occurred_at &&
+                        Number.isFinite(Date.parse(item.occurred_at)),
+                );
+            }
+            const current = result.content.find((item) => !item.is_superseded);
+            assert(
+                current,
+                "Source history must contain a current version on its last page",
+            );
+            assert(
+                (current.text_content ?? current.payload_text ?? "").length > 0,
+            );
+            console.log(
+                JSON.stringify({
+                    query,
+                    results: items.length,
+                    searchAndReadMs: Date.now() - started,
+                    source: source.source_url,
+                    occurred_at: source.occurred_at,
+                }),
+            );
         }
     },
 });
