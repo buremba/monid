@@ -93,15 +93,23 @@ This does not establish full readiness:
 - A Python urllib probe was rejected by Cloudflare with HTTP 403 / code 1010,
   while the actual Monid/Deno execution succeeded. Hosted Monid egress remains
   unverified; do not assume local success proves edge compatibility everywhere.
-- Returned event links served the frontend HTML and its JavaScript assets when
-  requested as HTML. Bare generic GETs returned the service-root JSON response.
-  This verifies delivery, not the final rendered browser interaction.
+- A fresh headless browser, without a signed-in session, rendered both Linear
+  and Notion event permalinks with full discussion text, dates, and original-source
+  links. The Linear history expansion and public Memory navigation also worked.
+  The UI explicitly identified the session as a visitor; sign-in remained optional.
+  Bare generic GETs return service-root JSON unless HTML is requested.
+- An explicit transport check completed nine anonymous requests for search,
+  pagination, current source reads, and a missing content ID. Only content-type
+  was supplied; Authorization and Cookie were absent. Whitespace-only query was
+  rejected before network access. The live connector test now checks credential
+  headers on every request and verifies search pagination.
 
 The connected Lobu OAuth grant explicitly rejected Market workspace access,
 although account discovery confirmed membership and public visibility. Feed,
 connection, and Automation health checks and repairs are pending renewed Market
-consent. No alternative credential or authenticated browser path was used to
-bypass that denial. Hold submission until these operating issues are checked and
+consent. The user authorized a fresh maintenance login after the authless proof;
+its approval is separate from public research. No authenticated browser path was
+used for the visitor tests. Hold submission until these operating issues are checked and
 resolved or their supported scope is made explicit.
 
 ## Maintainer review request

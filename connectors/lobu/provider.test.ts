@@ -372,15 +372,34 @@ Deno.test({
     ignore: Deno.env.get("LOBU_LIVE") !== "1",
     fn: async () => {
         const unit = await testSealedUnit("lobu#api/market/read_knowledge");
+        let anonymousRequests = 0;
+        const engine = new Engine({
+            transport: directTransport({
+                params: () => Promise.resolve({}),
+                fetch: (input, init) => {
+                    const headers = new Headers(
+                        (init as { headers?: HeadersInit } | undefined)
+                            ?.headers,
+                    );
+                    assert(!headers.has("authorization"));
+                    assert(!headers.has("cookie"));
+                    anonymousRequests++;
+                    return fetch(input, init);
+                },
+            }),
+        });
+        const loaded = await engine.load(unit);
+        const runLive = (body: Json) => loaded.run({ body });
         for (
             const query of ["Linear pricing complaints", "Notion alternatives"]
         ) {
             const started = Date.now();
-            const found = await runEndpoint({
-                unit,
-                input: { body: { query, limit: 3, include_total: false } },
-                mode: "live",
+            const found = await runLive({
+                query,
+                limit: 3,
+                include_total: false,
             });
+            assertEquals(found.httpStatus, 200);
             assertEquals(found.isProviderError, false, query);
             assertEquals(found.usage, FREE, query);
             const items = zKnowledgeResult.parse(found.output).content;
@@ -401,11 +420,23 @@ Deno.test({
                 source.occurred_at &&
                     Number.isFinite(Date.parse(source.occurred_at)),
             );
-            let read = await runEndpoint({
-                unit,
-                input: { body: { content_ids: [source.id], limit: 3 } },
-                mode: "live",
+            const next = await runLive({
+                query,
+                limit: 3,
+                offset: 3,
+                include_total: false,
             });
+            assertEquals(next.httpStatus, 200);
+            assertEquals(next.isProviderError, false);
+            const nextItems = zKnowledgeResult.parse(next.output).content;
+            assert(
+                !nextItems.some((item) =>
+                    items.some((first) => first.id === item.id)
+                ),
+                "Search pagination repeated a stored event ID",
+            );
+            let read = await runLive({ content_ids: [source.id], limit: 3 });
+            assertEquals(read.httpStatus, 200);
             assertEquals(read.isProviderError, false, query);
             assertEquals(read.usage, FREE, query);
             let result = zKnowledgeResult.parse(read.output);
@@ -414,17 +445,12 @@ Deno.test({
             // Inspect the last bounded page instead of assuming one ID = one row.
             if (result.page.has_more) {
                 assert(typeof result.total === "number");
-                read = await runEndpoint({
-                    unit,
-                    input: {
-                        body: {
-                            content_ids: [source.id],
-                            limit: 3,
-                            offset: Math.max(0, result.total - 3),
-                        },
-                    },
-                    mode: "live",
+                read = await runLive({
+                    content_ids: [source.id],
+                    limit: 3,
+                    offset: Math.max(0, result.total - 3),
                 });
+                assertEquals(read.httpStatus, 200);
                 assertEquals(read.isProviderError, false, query);
                 assertEquals(read.usage, FREE, query);
                 result = zKnowledgeResult.parse(read.output);
@@ -450,11 +476,16 @@ Deno.test({
                 JSON.stringify({
                     query,
                     results: items.length,
+                    pagination: "passed",
                     searchAndReadMs: Date.now() - started,
                     source: source.source_url,
                     occurred_at: source.occurred_at,
                 }),
             );
         }
+        assert(anonymousRequests >= 6);
+        console.log(
+            JSON.stringify({ anonymousRequests, credentialsSent: false }),
+        );
     },
 });

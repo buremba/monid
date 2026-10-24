@@ -16,6 +16,13 @@ timeouts, and usage model `FREE`. It SHALL NOT declare a credit pool,
 - **THEN** only content-type and the validated body are sent, no credential is
   resolved, and the engine reports empty credit/evidence usage
 
+#### Scenario: Real anonymous requests carry no session credentials
+
+- **WHEN** the opt-in live test searches, paginates, and reads source history
+- **THEN** every outgoing request lacks Authorization and Cookie headers
+- **AND** search pagination does not repeat event IDs from its first page
+- **AND** a fresh signed-out browser can render returned public permalinks
+
 ### Requirement: Public discussion search and reading
 
 The connector SHALL expose only `lobu#api/market/read_knowledge`, a POST whose

@@ -29,8 +29,10 @@ runtime tests; their 24 diagnostic messages match the clean upstream baseline.
 
 ## Market operating readiness before submission
 
-- [x] Repeat the actual Monid live tests (11 passed)
+- [x] Repeat the actual Monid live tests (11 passed), assert no Authorization/Cookie,
+      and check search pagination and source-version reads
 - [x] Broaden anonymous query checks and test query-only defaults and empty reads
+- [x] Fresh signed-out browser: both source permalinks, history, and Memory navigation
 - [x] Record relevance, duplicates, mixed freshness, and Cloudflare findings
 - [ ] Restore Market consent for the connected Lobu integration
 - [ ] Inspect current connections, feeds, runs, and source ingestion; repair and retest
