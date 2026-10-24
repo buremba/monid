@@ -34,9 +34,17 @@ runtime tests; their 24 diagnostic messages match the clean upstream baseline.
 - [x] Broaden anonymous query checks and test query-only defaults and empty reads
 - [x] Fresh signed-out browser: both source permalinks, history, and Memory navigation
 - [x] Record relevance, duplicates, mixed freshness, and Cloudflare findings
-- [ ] Restore Market consent for the connected Lobu integration
-- [ ] Inspect current connections, feeds, runs, and source ingestion; repair and retest
-- [ ] Resolve or explicitly bound the recorded readiness issues before submission
+- [x] Obtain user-approved Market maintenance access via a separate CLI context
+      (the connected integration grant remains unchanged)
+- [x] Inspect connections, feeds, runs, and ingestion; restore two public Reddit
+      feeds, collect 141 items, and verify new material through anonymous reads
+- [x] Re-run all 11 Monid tests after maintenance; no credential headers sent
+- [x] Repair the installed Trustpilot browser contract using existing version 2.1.1;
+      complete dry-run and real 20-review collection, then anonymous search/read
+- [x] Configure daily refresh for the repaired public feeds; future scheduled runs
+      remain unobserved
+- [x] Explicitly bound relevance, duplicate rows, source freshness, page sampling,
+      brand-text filtering, and hosted-egress limitations before submission
 
 ## Hosted launch (not established by local validation)
 

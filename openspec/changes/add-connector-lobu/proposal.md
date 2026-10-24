@@ -86,8 +86,9 @@ This does not establish full readiness:
   different origin formats on the same connection. Do not count raw rows as
   independent reviews. Resolve source identity and provenance before deduping;
   a review-site landing URL alone cannot distinguish individual reviews.
-- The newest anonymous Reddit rows were dated 2026-07-17. Website rows included
-  2026-10-24. An unrestricted recent Notion query also returned entity-update
+- Before maintenance, the newest anonymous Reddit rows were dated 2026-07-17.
+  Website rows included 2026-10-24. After the repair below, anonymous reads
+  returned Reddit discussions dated 2026-10-24. An unrestricted recent Notion query also returned entity-update
   records; selecting the requested source platforms excluded those records.
   The different source freshness levels need collection-health verification.
 - A Python urllib probe was rejected by Cloudflare with HTTP 403 / code 1010,
@@ -104,13 +105,45 @@ This does not establish full readiness:
   rejected before network access. The live connector test now checks credential
   headers on every request and verifies search pagination.
 
-The connected Lobu OAuth grant explicitly rejected Market workspace access,
-although account discovery confirmed membership and public visibility. Feed,
-connection, and Automation health checks and repairs are pending renewed Market
-consent. The user authorized a fresh maintenance login after the authless proof;
-its approval is separate from public research. No authenticated browser path was
-used for the visitor tests. Hold submission until these operating issues are checked and
-resolved or their supported scope is made explicit.
+The connected Lobu integration's existing OAuth grant rejected Market access.
+After completing the authless proof, the user approved a separate, explicitly
+scoped CLI maintenance login. Account-authorized Market inspection then worked;
+the connected integration's original grant was not expanded or bypassed.
+
+Maintenance used existing connector and feed contracts:
+
+- The public Reddit connection had no feeds. Created public r/Linear and
+  r/Notion post feeds with a 14-day lookback, dry-ran both, then completed real
+  runs collecting 3 and 138 items respectively. Both now report successful syncs
+  and have daily 06:17 UTC schedules. The next scheduled execution has not yet
+  been observed, so regular future processing is not established.
+- Anonymous read_knowledge calls subsequently returned the October 16
+  [Linear documentation discussion](https://reddit.com/r/Linear/comments/1x7e3l3/linear_documentation_isnt_enoughhelp/)
+  and October 24
+  [Notion discussion](https://reddit.com/r/Notion/comments/1xedszn/why_do_you_use_notion/),
+  with their original sources and dates. This verifies collection through public
+  readback for those two feeds, not comprehensive company or source coverage.
+- Existing website feeds reported successful runs on October 24. The existing
+  company-evidence Automation was also completing runs. Their configuration was
+  left intact; successful execution alone does not establish every source's quality.
+- Trustpilot's test feed initially failed on a retired browser-dispatcher contract.
+  Validated the repository's existing 2.1.1 migration, updated only that installed
+  Market connector from 2.1.0 with an expected-version check, and bound its public
+  collection to an available paired Chrome device. Browser readiness, a 20-item
+  dry run, and the real 20-item collection all passed. Anonymous Slack search
+  returned newly stored reviews, and an exact anonymous read returned the
+  October 14 review with its source and date. Daily refresh is configured for
+  06:31 UTC; its next scheduled run remains unobserved. This is a bounded page
+  sample, not exhaustive review history. The current collector does not enforce
+  its declared lookback_days field, so that setting was removed from this feed;
+  no date-window guarantee is made. Strict brand-text filtering missed the newest
+  Slack-page review because its body never names Slack; platform/date lookup
+  and exact source reading worked. Brand absence in text is not source absence.
+
+The post-Reddit-repair Monid suite again passed all 11 tests, including eight
+anonymous requests and both search-to-read workflows. No private Reddit account,
+private messages, or account connections were exposed through Monid. The separate
+Lobu source-guidance fix remains undeployed and is not required by this endpoint.
 
 ## Maintainer review request
 
